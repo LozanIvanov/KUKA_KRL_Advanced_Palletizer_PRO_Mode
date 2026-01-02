@@ -1,0 +1,31 @@
+&ACCESS RVO1
+&COMMENT KUKA KRL palletizing application featuring dynamic point generation, sensor-based error handling, WHILE loop logic, digital I/O mapping, safe interrupt handling, and modular subroutines.
+DEFDAT Advanced_Palletizer_PRO_Mode PUBLIC
+
+DECL FRAME TOOL_DATA[1]
+   TOOL_DATA[1] = {X 0,Y 0,Z 200,A 0,B 0,C 0}
+DECL FRAME BASE_DATA[1]
+   BASE_DATA[1] = {X 500,Y 0,Z 0,A 0,B 0,C 0}
+
+DECL E6POS P_PICK  ={X 0,Y 0,Z 50,A 0,B 0,C 0}
+DECL E6POS P_PLACE_START ={X 300,Y -150,Z 50,A 0,B 0,C 0}
+
+DECL E6POS P_SAFE_PICK
+DECL E6POS P_SAFE_PLACE
+
+DECL REAL stepX = 80.0
+DECL REAL stepY = 80.0
+
+DECL E6POS P_CALC
+   
+;FOLD EXTERNAL DECLARATIONS;%{PE}%MKUKATPBASIS,%CEXT,%VCOMMON,%P
+;FOLD BASISTECH EXT;%{PE}%MKUKATPBASIS,%CEXT,%VEXT,%P
+EXT  BAS (BAS_COMMAND  :IN,REAL  :IN )
+DECL INT SUCCESS
+;ENDFOLD (BASISTECH EXT)
+;FOLD USER EXT;%{E}%MKUKATPUSER,%CEXT,%VEXT,%P
+;Make here your modifications
+
+;ENDFOLD (USER EXT)
+;ENDFOLD (EXTERNAL DECLERATIONS)
+ENDDAT

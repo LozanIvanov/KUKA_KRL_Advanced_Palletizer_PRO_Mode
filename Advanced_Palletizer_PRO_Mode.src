@@ -1,0 +1,143 @@
+&ACCESS RVO1
+&COMMENT KUKA KRL palletizing application featuring dynamic point generation, sensor-based error handling, WHILE loop logic, digital I/O mapping, safe interrupt handling, and modular subroutines.
+DEF Advanced_Palletizer_PRO_Mode ( )
+
+   SIGNAL GRIP_CLOSE  $OUT[1]
+   SIGNAL GRIP_OPEN   $OUT[2]
+
+   SIGNAL PART_OK     $IN[1]
+   SIGNAL SAFETY_OK   $IN[2]
+
+   DECL INT row, col
+   DECL INT maxRows, maxCols
+   DECL BOOL palletFull
+
+   DECL E6POS Ptmp
+
+   GLOBAL INTERRUPT DECL 10 WHEN NOT SAFETY_OK DO SAFE_STOP()
+   INTERRUPT ON 10
+;FOLD INI
+  ;FOLD BASISTECH INI
+    GLOBAL INTERRUPT DECL 3 WHEN $STOPMESS==TRUE DO IR_STOPM ( )
+    INTERRUPT ON 3 
+    BAS (#INITMOV,0 )
+  ;ENDFOLD (BASISTECH INI)
+  ;FOLD USER INI
+    ;Make your modifications here
+
+  ;ENDFOLD (USER INI)
+;ENDFOLD (INI)
+
+;FOLD PTP HOME  Vel= 100 % DEFAULT;%{PE}%MKUKATPBASIS,%CMOVE,%VPTP,%P 1:PTP, 2:HOME, 3:, 5:100, 7:DEFAULT
+$BWDSTART = FALSE
+PDAT_ACT=PDEFAULT
+FDAT_ACT=FHOME
+BAS (#PTP_PARAMS,100 )
+$H_POS=XHOME
+PTP  XHOME
+;ENDFOLD
+
+;FOLD PTP HOME  Vel= 100 % DEFAULT;%{PE}%MKUKATPBASIS,%CMOVE,%VPTP,%P 1:PTP, 2:HOME, 3:, 5:100, 7:DEFAULT
+$BWDSTART = FALSE
+PDAT_ACT=PDEFAULT
+FDAT_ACT=FHOME
+BAS (#PTP_PARAMS,100 )
+$H_POS=XHOME
+PTP  XHOME
+;ENDFOLD
+   $TOOL = TOOL_DATA[1]
+   $BASE = BASE_DATA[1]
+
+   maxRows = 3
+   maxCols = 4
+
+   row = 1
+   col = 1
+   palletFull = FALSE
+
+   GRIP_OPEN  = TRUE
+   GRIP_CLOSE = FALSE
+
+   WAIT FOR SAFETY_OK
+
+   WHILE NOT palletFull
+
+      PICK_PART()
+
+      CHECK_PART()
+
+      CALC_PALLET_POS(row, col)
+
+      PLACE_PART()
+
+      col = col + 1
+
+      IF col > maxCols THEN
+         col = 1
+         row = row + 1
+      ENDIF
+
+      IF row > maxRows THEN
+         palletFull = TRUE
+      ENDIF
+
+   ENDWHILE
+
+   PTP XHOME
+
+END
+DEF PICK_PART()
+   P_SAFE_PICK = P_PICK
+   P_SAFE_PICK.Z = P_PICK.Z + 150
+
+   PTP P_SAFE_PICK
+   LIN P_PICK
+
+   GRIP_OPEN  = FALSE
+   GRIP_CLOSE = TRUE
+   WAIT SEC 0.2
+
+   LIN P_SAFE_PICK
+END
+
+
+DEF CHECK_PART()
+   IF NOT PART_OK THEN
+      WAIT SEC 0.5
+      IF NOT PART_OK THEN
+         HALT
+      ENDIF
+   ENDIF
+END
+DEF CALC_PALLET_POS(r:IN, c:IN)
+   
+   DECL INT r
+   DECL INT c
+
+   P_CALC = P_PLACE_START
+   P_CALC.X = P_PLACE_START.X + (c - 1) * stepX
+   P_CALC.Y = P_PLACE_START.Y + (r - 1) * stepY
+
+END
+
+
+DEF PLACE_PART()
+   P_SAFE_PLACE = P_CALC
+   P_SAFE_PLACE.Z = P_CALC.Z + 150
+
+   PTP P_SAFE_PLACE
+   LIN P_CALC
+
+   GRIP_OPEN  = TRUE
+   GRIP_CLOSE = FALSE
+   WAIT SEC 0.2
+
+   LIN P_SAFE_PLACE
+END
+
+
+DEF SAFE_STOP()
+   GRIP_OPEN = TRUE
+   BRAKE
+   PTP XHOME
+END
